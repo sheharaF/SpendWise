@@ -15,22 +15,20 @@
 </head>
 <body>
   <header class="top"><div class="wrap top-inner">
-    <a class="brand" href="./"><span class="brand-icon" aria-hidden="true">%</span> Offer Finder</a>
+    <a class="brand" href="#offers"><span class="brand-icon" aria-hidden="true">%</span> Offer Finder</a>
     <span class="region">Sri Lanka</span>
   </div></header>
   <main class="wrap">
-    <section class="hero">
-      <div>
-        <h1>Card offers<br>worth finding<span>.</span></h1>
-        <p>Explore Sampath and BOC deals, and keep track of the dates that matter.</p>
-      </div>
-      <div class="art" aria-hidden="true"><div class="art-card back"></div><div class="art-card front"><span class="chip"></span><strong>%</strong><span class="art-bank">OFFER FINDER</span></div></div>
-    </section>
     <nav class="view-nav" aria-label="View">
-      <button type="button" data-view="offers" aria-pressed="true"><span aria-hidden="true">▦</span> Offers</button>
-      <button type="button" data-view="calendar" aria-pressed="false"><span aria-hidden="true">▣</span> Calendar</button>
+      <a href="#offers" data-view="offers" aria-current="page">Offers</a>
+      <a href="#calendar" data-view="calendar">Calendar</a>
+      <a href="#settings" data-view="settings">Settings</a>
     </nav>
-    <section class="filters" aria-label="Offer filters">
+    <section id="reminders" class="reminders" aria-labelledby="reminder-heading" hidden>
+      <h2 id="reminder-heading">Favorite offers coming up</h2>
+      <div id="reminder-list" class="reminder-list"></div>
+    </section>
+    <section id="filters" class="filters" aria-label="Offer filters">
       <div class="bank-row">
         <span class="field-title" id="bank-label">Bank</span>
         <div id="banks" class="pills" role="group" aria-labelledby="bank-label"></div>
@@ -45,12 +43,12 @@
       <p id="filter-error" role="alert" hidden>Choose an end date on or after the start date.</p>
     </section>
     <section id="offers" aria-labelledby="offer-heading">
-      <div class="section-head"><div><h2 id="offer-heading">Latest offers</h2><p id="result-count" role="status">Loading bank offers…</p></div><button id="reset" class="plain" type="button" hidden>Clear filters</button></div>
+      <div class="section-head"><div><h1 id="offer-heading" tabindex="-1">Latest offers</h1><p id="result-count" role="status">Loading bank offers…</p></div><button id="reset" class="plain" type="button" hidden>Clear filters</button></div>
       <div class="offer-grid" id="offer-list"></div>
       <button id="more" type="button" class="secondary more" hidden>Show more offers</button>
     </section>
     <section id="calendar" aria-labelledby="calendar-heading" hidden>
-      <div class="section-head"><div><h2 id="calendar-heading">Offer calendar</h2><p>Choose a marked category or date to see its offers.</p></div></div>
+      <div class="section-head"><div><h1 id="calendar-heading" tabindex="-1">Offer calendar</h1><p>Choose a marked category or date to see its offers.</p></div></div>
       <div class="calendar-shell">
         <div class="calendar-head">
           <button id="prev" class="icon-button" type="button" aria-label="Previous month">‹</button>
@@ -62,6 +60,17 @@
         <div id="month-grid" class="month-grid"></div>
         <div id="legend" class="legend"></div>
       </div>
+    </section>
+    <section id="settings" aria-labelledby="settings-heading" hidden>
+      <div class="section-head">
+        <div>
+          <h1 id="settings-heading" tabindex="-1">Settings</h1>
+          <p>Choose the banks, cards, and categories you see. Mark favorites to get dashboard reminders.</p>
+        </div>
+      </div>
+      <p id="settings-status" class="settings-status" role="status">Your choices are saved in this browser.</p>
+      <div id="settings-banks" class="settings-banks"><p>Loading bank categories…</p></div>
+      <a class="secondary settings-done" href="#offers">Done</a>
     </section>
     <footer id="sources"></footer>
   </main>

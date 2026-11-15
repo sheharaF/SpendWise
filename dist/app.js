@@ -12,7 +12,19 @@ let data = { banks: {}, offers: [] };
 let filtered = [];
 let calendarByDay = new Map();
 let detailContext = null;
+let loaded = false;
 const fields = ['query', 'card', 'category', 'sort', 'from', 'to'];
+const cardTypes = { credit: 'Credit card', debit: 'Debit card' };
+const storageKey = 'offer-finder.preferences.v1';
+const preferences = { hiddenBanks: new Set(), hiddenCategories: new Set(), hiddenCards: new Set(), favorites: new Set() };
+try {
+  const stored = JSON.parse(localStorage.getItem(storageKey));
+  for (const key of Object.keys(preferences)) {
+    if (Array.isArray(stored?.[key])) preferences[key] = new Set(stored[key]);
+  }
+} catch {
+  $('settings-status').textContent = 'Your browser could not load saved preferences.';
+}
 
 const esc = value => String(value ?? '').replace(/[&<>"']/g, ch =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
@@ -23,7 +35,7 @@ function hue(key) {
 }
 function cardLabel(offer) {
   if (offer.types.length === 2) return 'Credit & debit';
-  return { credit: 'Credit card', debit: 'Debit card' }[offer.types[0]] || 'See eligible cards';
+  return cardTypes[offer.types[0]] || 'See eligible cards';
 }
 function safeLink(value) {
   try {
@@ -34,17 +46,65 @@ function safeLink(value) {
   }
 }
 
+function allowedCards(bank) {
+  return Object.keys(cardTypes).filter(type => !preferences.hiddenCards.has(bank + ':' + type));
+}
+
+function isVisible(offer) {
+  if (preferences.hiddenBanks.has(offer.bank) || preferences.hiddenCategories.has(categoryKey(offer))) return false;
+  const cards = allowedCards(offer.bank);
+  return offer.types.length ? offer.types.some(type => cards.includes(type)) : cards.length === Object.keys(cardTypes).length;
+}
+
 function renderBanks() {
-  $('banks').innerHTML = [['', 'All banks'], ...Object.entries(names)].map(([value, label]) =>
+  const banks = Object.entries(names).filter(([bank]) => !preferences.hiddenBanks.has(bank));
+  if (!banks.some(([bank]) => bank === state.bank)) state.bank = '';
+  $('banks').innerHTML = [['', 'All banks'], ...banks].map(([value, label]) =>
     `<button type="button" class="pill" data-bank="${value}" aria-pressed="${state.bank === value}">${label}</button>`).join('');
 }
 function renderCategories() {
-  const groups = state.bank ? [state.bank] : Object.keys(names);
+  const selected = $('category').value;
+  const groups = state.bank ? [state.bank] : Object.keys(names).filter(bank => !preferences.hiddenBanks.has(bank));
   $('category').innerHTML = '<option value="">All categories</option>' + groups.map(bank => {
-    const options = (data.banks[bank]?.categories || []).map(c =>
-      `<option value="${esc(bank + ':' + c.id)}">${esc(c.label)}</option>`).join('');
+    const options = (data.banks[bank]?.categories || [])
+      .filter(c => !preferences.hiddenCategories.has(bank + ':' + c.id))
+      .map(c => `<option value="${esc(bank + ':' + c.id)}">${esc(c.label)}</option>`).join('');
     return state.bank || !options ? options : `<optgroup label="${names[bank]}">${options}</optgroup>`;
   }).join('');
+  if ([...$('category').options].some(option => option.value === selected)) $('category').value = selected;
+}
+
+function preferenceCheckbox(group, key, label) {
+  const selected = preferences[group].has(key) === (group === 'favorites');
+  return `<input type="checkbox" aria-label="${esc(label)}" data-preference="${group}" value="${esc(key)}"${selected ? ' checked' : ''}>`;
+}
+
+function renderSettings() {
+  $('settings-banks').innerHTML = Object.entries(data.banks).map(([bank, source]) => {
+    const label = names[bank];
+    const cards = Object.entries(cardTypes).map(([type, name]) =>
+      `<label>${preferenceCheckbox('hiddenCards', bank + ':' + type, label + ' ' + name)} ${name}</label>`).join('');
+    const categories = source.categories.map(({ id, label: category }) => {
+      const key = bank + ':' + id;
+      return `<div class="settings-category">
+        <span>${esc(category)}</span>
+        ${preferenceCheckbox('hiddenCategories', key, 'Show ' + category + ' from ' + label)}
+        ${preferenceCheckbox('favorites', key, 'Favorite ' + category + ' from ' + label)}
+      </div>`;
+    }).join('');
+    return `<section class="settings-bank" aria-labelledby="settings-${bank}">
+      <div class="settings-bank-head">
+        <h2 id="settings-${bank}">${esc(label)}</h2>
+        <label>${preferenceCheckbox('hiddenBanks', bank, 'Show ' + label)} Show bank</label>
+      </div>
+      <fieldset class="settings-card-types">
+        <legend>Cards</legend>
+        ${cards}
+      </fieldset>
+      <div class="settings-category category-head" aria-hidden="true"><span>Category</span><span>Show</span><span>Favorite</span></div>
+      ${categories}
+    </section>`;
+  }).join('') || '<p>No bank categories are available.</p>';
 }
 
 function matchesValidity(offer, from, to) {
@@ -77,6 +137,7 @@ function applyFilters() {
   $('reset').hidden = !(state.bank || fields.some(id => $(id).value && $(id).value !== 'default'));
   const valid = $('filter-error').hidden;
   filtered = data.offers.filter(offer => valid &&
+    isVisible(offer) &&
     (!state.bank || offer.bank === state.bank) &&
     (!card || offer.types.includes(card)) &&
     (!category || categoryKey(offer) === category) &&
@@ -114,7 +175,7 @@ function offerCard(offer) {
 function renderOffers() {
   $('result-count').textContent = `${filtered.length} ${filtered.length === 1 ? 'offer' : 'offers'}`;
   $('offer-list').innerHTML = filtered.slice(0, state.limit).map(offerCard).join('') ||
-    '<p class="empty">No offers match these filters.</p>';
+    '<p class="empty">No offers match your filters or <a href="#settings">display settings</a>.</p>';
   $('more').hidden = filtered.length <= state.limit;
 }
 
@@ -168,16 +229,32 @@ function renderCalendar() {
 }
 
 function render() {
+  if (!loaded || state.view === 'settings') return;
   applyFilters();
   if (state.view === 'calendar') renderCalendar();
-  else renderOffers();
+  else {
+    renderReminders();
+    renderOffers();
+  }
 }
-function selectView(view) {
+function syncView(focus = false) {
+  const path = location.hash.slice(1);
+  const view = path === 'calendar' || path === 'settings' ? path : 'offers';
   state.view = view;
-  document.querySelectorAll('[data-view]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.view === view)));
+  document.querySelectorAll('[data-view]').forEach(link => {
+    if (link.dataset.view === view) link.setAttribute('aria-current', 'page');
+    else link.removeAttribute('aria-current');
+  });
+  $('filters').hidden = view === 'settings';
   $('offers').hidden = view !== 'offers';
   $('calendar').hidden = view !== 'calendar';
+  $('settings').hidden = view !== 'settings';
+  if (view !== 'offers') $('reminders').hidden = true;
   render();
+  if (focus) {
+    $(view === 'offers' ? 'offer-heading' : view + '-heading').focus({ preventScroll: true });
+    window.scrollTo(0, 0);
+  }
 }
 
 function openPopup(title, body) {
@@ -209,7 +286,7 @@ function calendarPopup(day, key) {
 
 function nextEvent(offer) {
   if (offer.calendar === false) return '';
-  if (!offer.periods.length) return offer.end >= today ? offer.end : '';
+  if (!offer.periods.length) return offer.end >= today && eventKind(offer, offer.end) ? offer.end : '';
   const next = [];
   for (const period of offer.periods) {
     const start = period.from > today ? period.from : today;
@@ -221,6 +298,32 @@ function nextEvent(offer) {
     }
   }
   return next.sort()[0] || '';
+}
+
+function renderReminders() {
+  const tomorrow = shift(today, 1);
+  const month = today.slice(0, 7);
+  const reminders = filtered
+    .filter(offer => offer.types.length && preferences.favorites.has(categoryKey(offer)))
+    .map(offer => ({ offer, day: nextEvent(offer) }))
+    .filter(({ day }) => day === tomorrow || day.startsWith(month))
+    .sort((a, b) => a.day.localeCompare(b.day) ||
+      (parseFloat(b.offer.discount?.match(/[\d.]+/)?.[0]) || 0) - (parseFloat(a.offer.discount?.match(/[\d.]+/)?.[0]) || 0));
+  $('reminders').hidden = !reminders.length;
+  const row = ({ offer, day }) => {
+    const when = day === today ? 'Today' : day === tomorrow ? 'Tomorrow' : printDate(day, { day: 'numeric', month: 'short' });
+    const timing = eventKind(offer, day) === 'Expiry reminder'
+      ? 'Ends ' + (day === today || day === tomorrow ? when.toLowerCase() : when)
+      : when;
+    return `<button type="button" class="reminder" data-offer="${esc(offer.id)}">
+      <span class="reminder-date">${esc(timing)}</span>
+      <strong>${esc(offer.name)}</strong>
+      ${offer.discount ? `<span class="offer-discount">${esc(offer.discount)}</span>` : ''}
+      <span class="offer-meta">${esc(names[offer.bank])} · ${esc(categoryName(offer))} · ${cardLabel(offer)}</span>
+    </button>`;
+  };
+  $('reminder-list').innerHTML = reminders.slice(0, 3).map(row).join('') +
+    (reminders.length > 3 ? `<details class="reminder-more"><summary>More favorite offers</summary>${reminders.slice(3).map(row).join('')}</details>` : '');
 }
 
 function showOffer(offer) {
@@ -269,9 +372,24 @@ function showOffer(offer) {
   syncCalendarLinks();
 }
 
-document.querySelector('.view-nav').addEventListener('click', event => {
-  const button = event.target.closest('button[data-view]');
-  if (button) selectView(button.dataset.view);
+window.addEventListener('hashchange', () => syncView(true));
+$('settings-banks').addEventListener('change', event => {
+  const checkbox = event.target.closest('input[data-preference]');
+  if (!checkbox) return;
+  const group = checkbox.dataset.preference;
+  const selected = checkbox.checked === (group === 'favorites');
+  if (selected) preferences[group].add(checkbox.value);
+  else preferences[group].delete(checkbox.value);
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(Object.fromEntries(
+      Object.entries(preferences).map(([key, values]) => [key, [...values]]))));
+    $('settings-status').textContent = 'Your choices are saved in this browser.';
+  } catch {
+    $('settings-status').textContent = 'Preferences apply until you reload. Your browser could not save them.';
+  }
+  state.limit = 15;
+  renderBanks();
+  renderCategories();
 });
 $('banks').addEventListener('click', event => {
   const button = event.target.closest('button[data-bank]');
@@ -331,11 +449,14 @@ document.addEventListener('error', event => {
 
 renderBanks();
 renderCategories();
+syncView();
 try {
   const response = await fetch('./offers.json', { cache: 'no-cache' });
   if (!response.ok) throw new Error('Offer feed unavailable');
   data = await response.json();
+  loaded = true;
   renderCategories();
+  renderSettings();
   render();
   const sources = Object.entries(data.banks).map(([bank, value]) =>
     `<li><a href="${safeLink(value.source)}" target="_blank" rel="noopener noreferrer">${names[bank]}</a>
@@ -343,5 +464,6 @@ try {
   $('sources').innerHTML = `<ul>${sources}</ul><p>Check the bank’s terms for eligibility and exclusions.</p>`;
 } catch {
   $('result-count').textContent = 'Bank offers could not be loaded. Refresh to try again.';
+  $('settings-banks').textContent = 'Bank categories could not be loaded. Refresh to try again.';
 }
 
