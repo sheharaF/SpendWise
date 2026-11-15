@@ -1,0 +1,12 @@
+{
+  "name": "offer-finder",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "refresh": "node scripts/refresh.mjs",
+    "test": "node --test scripts/*.test.mjs"
+  }
+}
+

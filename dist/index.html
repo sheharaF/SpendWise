@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en-LK">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f8f3">
+  <meta name="description" content="Find Sri Lankan card offers from Sampath Bank and Bank of Ceylon, and plan around their offer dates.">
+  <title>Offer Finder · Sri Lanka</title>
+  <link rel="icon" type="image/png" href="./icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <header class="top"><div class="wrap top-inner">
+    <a class="brand" href="./"><span class="brand-icon" aria-hidden="true">%</span> Offer Finder</a>
+    <span class="region">Sri Lanka</span>
+  </div></header>
+  <main class="wrap">
+    <section class="hero">
+      <div>
+        <h1>Card offers<br>worth finding<span>.</span></h1>
+        <p>Explore Sampath and BOC deals, and keep track of the dates that matter.</p>
+      </div>
+      <div class="art" aria-hidden="true"><div class="art-card back"></div><div class="art-card front"><span class="chip"></span><strong>%</strong><span class="art-bank">OFFER FINDER</span></div></div>
+    </section>
+    <nav class="view-nav" aria-label="View">
+      <button type="button" data-view="offers" aria-pressed="true"><span aria-hidden="true">▦</span> Offers</button>
+      <button type="button" data-view="calendar" aria-pressed="false"><span aria-hidden="true">▣</span> Calendar</button>
+    </nav>
+    <section class="filters" aria-label="Offer filters">
+      <div class="bank-row">
+        <span class="field-title" id="bank-label">Bank</span>
+        <div id="banks" class="pills" role="group" aria-labelledby="bank-label"></div>
+      </div>
+      <div class="fields">
+        <label class="search-field"><span class="field-title">Search</span><input id="query" type="search" placeholder="Merchant or offer"></label>
+        <label><span class="field-title">Card</span><select id="card"><option value="">All cards</option><option value="credit">Credit card</option><option value="debit">Debit card</option></select></label>
+        <label><span class="field-title">Category</span><select id="category"></select></label>
+        <label id="sort-field"><span class="field-title">Sort by</span><select id="sort"><option value="default">Bank listing</option><option value="date">Date</option><option value="name">Name</option></select></label>
+      </div>
+      <details id="validity" hidden><summary>Offer validity</summary><div class="fields date-fields"><label><span class="field-title">From</span><input type="date" id="from"></label><label><span class="field-title">To</span><input type="date" id="to"></label></div></details>
+      <p id="filter-error" role="alert" hidden>Choose an end date on or after the start date.</p>
+    </section>
+    <section id="offers" aria-labelledby="offer-heading">
+      <div class="section-head"><div><h2 id="offer-heading">Latest offers</h2><p id="result-count" role="status">Loading bank offers…</p></div><button id="reset" class="plain" type="button" hidden>Clear filters</button></div>
+      <div class="offer-grid" id="offer-list"></div>
+      <button id="more" type="button" class="secondary more" hidden>Show more offers</button>
+    </section>
+    <section id="calendar" aria-labelledby="calendar-heading" hidden>
+      <div class="section-head"><div><h2 id="calendar-heading">Offer calendar</h2><p>Choose a marked category or date to see its offers.</p></div></div>
+      <div class="calendar-shell">
+        <div class="calendar-head">
+          <button id="prev" class="icon-button" type="button" aria-label="Previous month">‹</button>
+          <h3 id="month" aria-live="polite"></h3>
+          <button id="next" class="icon-button" type="button" aria-label="Next month">›</button>
+          <button id="today" class="secondary today" type="button">Today</button>
+        </div>
+        <div class="weekdays" aria-hidden="true"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+        <div id="month-grid" class="month-grid"></div>
+        <div id="legend" class="legend"></div>
+      </div>
+    </section>
+    <footer id="sources"></footer>
+  </main>
+  <dialog id="popup" aria-labelledby="popup-title">
+    <div class="dialog-head"><h2 id="popup-title"></h2><form method="dialog"><button class="icon-button close" aria-label="Close" value="close">×</button></form></div>
+    <div id="popup-body"></div>
+  </dialog>
+</body>
+</html>
+
