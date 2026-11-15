@@ -21,7 +21,7 @@ The bank links in each offer contain the full eligibility and terms. Offers with
 
 ## GitHub Pages
 
-Push this folder to a GitHub repository with `main` as its default branch. In **Settings → Pages**, select **GitHub Actions** as the source, then run **Refresh and publish offers** from the Actions tab. The included workflow publishes `dist/` and refreshes it daily at 06:13 Sri Lanka time. If a source is temporarily unavailable or changes its format, the job uses the last successful snapshot for that bank and preserves its original update date.
+Push this folder to a GitHub repository with `main` as its default branch. In **Settings → Pages**, select **GitHub Actions** as the source, then run **Refresh and publish offers** from the Actions tab. Each manual run refreshes offers and publishes `dist/` to GitHub Pages. If a source is temporarily unavailable or changes its format, the job uses the last successful snapshot for that bank and preserves its original update date.
 
 The `dist/` directory can also be deployed directly to a static host such as Cloudflare Pages or Vercel. On those hosts, refresh the snapshot and redeploy through your chosen build or scheduled workflow.
 
